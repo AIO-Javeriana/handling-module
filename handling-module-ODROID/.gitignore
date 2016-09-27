@@ -1,0 +1,11 @@
+boost_1_58_0/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+gripper_module
+libsioclient.a
+libsioclient_tls.a
+Makefile
+*~
+*.swp
+*.swo
