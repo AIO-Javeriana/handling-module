@@ -1,9 +1,9 @@
 ******************************************************************************
                   MSP430 Linker PC v15.12.3                    
 ******************************************************************************
->> Linked Tue Sep 27 01:35:45 2016
+>> Linked Tue Sep 27 09:04:18 2016
 
-OUTPUT FILE NAME:   <handling-module.out>
+OUTPUT FILE NAME:   <handling-module-MSP430G2452.out>
 ENTRY POINT SYMBOL: "_c_int00_noinit_noargs_noexit"  address: 0000e022
 
 
@@ -48,7 +48,7 @@ section   page    origin      length       input sections
                   000002b2    0000004e     --HOLE--
 
 .text      0    0000e000    00000046     
-                  0000e000    00000022     blink.obj (.text:main)
+                  0000e000    00000022     main.obj (.text:main)
                   0000e022    00000012     rts430_eabi.lib : boot_special.obj (.text:_c_int00_noinit_noargs_noexit)
                   0000e034    00000008                     : isr_trap.obj (.text:_isr:__TI_ISR_TRAP)
                   0000e03c    00000006                     : exit.obj (.text:abort)
@@ -99,7 +99,7 @@ MODULE SUMMARY
        Module             code   ro data   rw data
        ------             ----   -------   -------
     .\
-       blink.obj          34     0         0      
+       main.obj           34     0         0      
     +--+------------------+------+---------+---------+
        Total:             34     0         0      
                                                   
