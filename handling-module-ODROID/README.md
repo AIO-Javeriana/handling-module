@@ -19,7 +19,7 @@ This intermediate module, is working as interface communication between Actor br
     $ cd handling-module/handling-module-ODROID
     $ cmake
     $ make
-    $ ./mobility_module
+    $ ./handling_module
 
 ## Second option Installation
 
@@ -44,6 +44,6 @@ This intermediate module, is working as interface communication between Actor br
     $ rm boost_1_58_0.tar.gz
     $ cmake -DBOOST_INCLUDEDIR=./boost_1_58_0 -DBOOST_LIBRARYDIR=./boost_1_58_0/libs -DBOOST_VER:STRING=1.58 .
     $ make
-    $ ./mobility_module
+    $ ./handling_module
 
 Happy coding!

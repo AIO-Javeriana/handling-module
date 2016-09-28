@@ -1,4 +1,3 @@
-/* ============================================================================ */
 /* Copyright (c) 2016, Texas Instruments Incorporated                           */
 /*  All rights reserved.                                                        */
 /*                                                                              */
