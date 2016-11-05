@@ -1,7 +1,7 @@
 ******************************************************************************
                   MSP430 Linker PC v15.12.3                    
 ******************************************************************************
->> Linked Tue Sep 27 19:51:20 2016
+>> Linked Fri Nov 04 18:27:55 2016
 
 OUTPUT FILE NAME:   <handling-module-MSP430G2452.out>
 ENTRY POINT SYMBOL: "_c_int00_noinit_noargs_noexit"  address: 0000ed6c

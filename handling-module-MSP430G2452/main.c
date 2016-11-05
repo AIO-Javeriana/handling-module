@@ -51,22 +51,23 @@ void configCLK(){
 
 
 int main(void) {
+
 	float clk=5e5;
 	float period=(clk/50);
 	float dutyCycle=0.01;
 	WDTCTL = WDTPW + WDTHOLD;                 // Stop WDT
 	configCLK();
-	P1DIR |= LED_2 + BIT4 ;  	// P1.4 output
+	P1DIR |= LED_2 + BIT6 ;  	// P1.4 output
 	P1OUT = 0x00;
-
-	P1SEL |= BIT4;                            // P1.4 options
-	P1SEL2 |= BIT4;
+	P1SEL |= BIT6;                            // P1.4 options
+	P1SEL2 |= BIT6;
 	CCR0 = period;                             // PWM Period
 	CCTL2 = OUTMOD_7;                         // CCR2 reset/set
 
 
 	changeDutyCycle(period,dutyCycle);
 	TACTL = TASSEL_2  + MC_3;                  // SMCLK, up/down mode
+	//TACCTL1 = OUTMOD_7 | CCIE;
 	float i=0.04;
 	while(1){
 		if(i>0.1){
@@ -80,6 +81,9 @@ int main(void) {
 	}
 	_BIS_SR(CPUOFF);                          // Enter LPM0
 	//*/
+
+    // WDT is clocked by fSMCLK (1MHz)
+
 	return 0;
 }
 
