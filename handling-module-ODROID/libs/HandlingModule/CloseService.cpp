@@ -1,16 +1,60 @@
 
+#ifndef CLOSESERVICE_H
+#define CLOSESERVICE_H 
+        
+#include <json.hpp>
+#include <iostream>
+#include <HandlingModuleInfo.cpp>
+#include <Services.cpp>
 #include <string>
-#include <string.h>
-//-----------------------
-#include <stdio.h>
-#include <HandlingModule.cpp> 
+
 #include <wiringPi.h>
 #include <wiringSerial.h>
+
+//*/
+#ifdef WIN32
+
+#define HIGHLIGHT(__O__) std::cout<<__O__<<std::endl
+#define EM(__O__) std::cout<<__O__<<std::endl
+#include <stdio.h>
+#include <tchar.h>
+
+#else
+
+#define HIGHLIGHT(__O__) std::cout<<"\e[1;31m"<<__O__<<"\e[0m"<<std::endl
+#define EM(__O__) std::cout<<"\e[1;30;1m"<<__O__<<"\e[0m"<<std::endl
+
+#endif
+using json = nlohmann::json;
 using namespace std;
 
-void start(string module_id,string host,int port);
+class CloseService: public Service{
 
-int handlingService(int service){
+public:
+    
+    CloseService():Service(){
+        this->name="CLOSE";
+        this->interruptible=false;
+        this->service=false;
+    	Service::registerClass(name, &CloseService::create);
+    
+    }
+    
+    CloseService(string name, list<string> params, bool interruptible, bool service) :
+        Service(name, params, interruptible, service) {
+        Service::registerClass(name, &CloseService::create);
+    }
+    static Service* create() { 
+        return new CloseService; 
+    }
+    
+    bool execute(json params, string &msg,ModuleInfo* moduleInfo){
+        
+		handlingService(1); 
+        return true;
+    }
+
+		int handlingService(int service){
 		int fd ;
 		  int count ;
 		  unsigned int nextTime ;
@@ -89,39 +133,8 @@ int handlingService(int service){
 		}
 
 
-
-int main(int argc ,const char* args[])
-{   handlingService(1);
-	delay(10000);
-	handlingService(0);
-	delay(10000);
-    return handlingService(1);
-    string module_id="handling_module";
-    string host="ws://localhost";
-    int port=9090;
-    for (int i=0;i<argc;i++){
-        if (strcmp (args[i],"-h")==0&& i+1<argc){
-            host=args[i+1];
-			host="ws://"+host;
-			//host="ws://"+host;
-			
-        }else if (strcmp (args[i],"-n")==0&& i+1<argc){
-                    module_id=(args[i+1]);
-        }else if (strcmp (args[i],"-p")==0&& i+1<argc){
-                    port=stoi(args[i+1]);
-        }
-        
-    }
-
-    cout<<module_id<<" "<<host<<" "<<port<<endl;
-    start(module_id,host,port);
-    return 0;
-}
-
-void start(string module_id,string host,int port){
-  
-  HandlingModuleInfo moduleInfo(module_id);
-  HandlingModule* handlingModule = new HandlingModule(host, port,&moduleInfo);
-  handlingModule->start();
-  while(true);
-}
+    
+   
+    
+};
+#endif
