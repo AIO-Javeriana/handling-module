@@ -45,13 +45,35 @@
 #define UART_CTS_PAD   BIT0 // MSP430  CTS line  P3.2 <- BLE_RTS line
 #define MIN_VALUE_SERVO 0.04
 #define MAX_VALUE_SERVO 0.1
+#define DUTY_CYCLE_OPEN 0.06
+#define DUTY_CYCLE_CLOSE 0.09
 
+typedef  struct {
+	unsigned char name[50];
+	unsigned char value[50];
+} Parameter;
+
+typedef  struct {
+	unsigned char command_id[10];
+	unsigned char group_id[10];
+	unsigned char command[50];
+	unsigned char event_name[50];
+	//Parameter parameters[5];
+} Message;
+
+
+typedef  struct {
+	unsigned char command_id[10];
+	unsigned char command[50];
+} Command;
 float reloj=1e6;
-float periodo=20000;//clk*0.00002;
-float dutyCycle=MIN_VALUE_SERVO;
-unsigned char LineBuffer[100];
+float periodo_=20000;//clk*0.00002;
+unsigned char LineBuffer[200];
 unsigned int bufferlength=0;
 unsigned int bracketsCount=0;
+char queue[3][10];
+Command commandsInQueue[3];
+int queueLength;
 void blink(){
 	P1DIR |= LED_1  ;
 	for(;;) {
@@ -66,25 +88,26 @@ void blink(){
 }
 
 
+
 //------------------------------------------------------------------------------
 // Function prototypes
 //------------------------------------------------------------------------------
 //void TimerA_UART_init(void);
 void uart_tx(unsigned char byte);
-void uartSend(char *string) ;
+void uartSend(unsigned char *string) ;
 void uartnSend(char *string,int length);
-void moveServo(float periodo,float dutyCycle,unsigned long wiatTime
-);
-//void TimerA_UART_print(char *string);
-//void changeDutyCycle(float period,float dutyCycle);
+void moveServo(float periodo,float dutyCycle);
+void messageProcessing(unsigned char *string,int length);
 
 
 int main(void) {
+
+
+	  queueLength=0;
 	  bufferlength=0;
 	  bracketsCount=0;
-	  WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
+	  WDTCTL = WDTPW | WDTHOLD;	// Stotp watchdog timer
       //---------------------UAT-------------------
-  	  // Use Calibration values  for 1MHz    Clock   DCO
   	  DCOCTL  =   0;
   	  BCSCTL1 = CALBC1_1MHZ;
   	  DCOCTL  =  CALDCO_1MHZ;
@@ -120,16 +143,27 @@ int main(void) {
   	  TA1CCTL1 = CM_0 | CCIS_0 | OUTMOD_3;
   	  TA1CCTL2 = CM_0 | CCIS_0 | OUTMOD_3;
 
-  	  TA0CCR0 = periodo; // Cargamos el periodo PWM
-  	  TA1CCR0 = periodo; // Cargamos el periodo PWM
-  	  TA0CCR1 = periodo*(1-dutyCycle);
-  	  TA1CCR1 = periodo*(1-dutyCycle);
+  	  TA0CCR0 = periodo_; // Cargamos el periodo PWM
+  	  TA1CCR0 = periodo_; // Cargamos el periodo PWM
+  	  //TA0CCR1 = periodo*(1-dutyCycle);
+  	  //TA1CCR1 = periodo*(1-dutyCycle);
+	  moveServo(periodo_,0.09);
 
   	  TA0CTL = TASSEL_2 | ID_0 | MC_1;
   	  TA1CTL = TASSEL_2 | ID_0 | MC_1;
+  	  bufferlength=0;
+	  bracketsCount=0;
+  	  //	moveServo(periodo_,(MIN_VALUE_SERVO));
+  	  	//
 
-  	  __bis_SR_register(LPM0_bits + GIE);        // LPM0 (low power mode) interrupts enabled
-
+  	  	//__delay_cycles(1000000);//1000000
+  	    //moveServo(periodo,MAX_VALUE_SERVO);
+	  //uartSend("{\"EVENT_NAME\":\"REGISTRATION\",\"MODULE_ID\":\"HANDING_MODULE\",\"COMMANDS\":[{\"COMMAND\":\"OPEN\",\"PARAMS\":[],\"INTERRUPTIBLE\":true,\"SERVICE\":false},{\"COMMAND\":\"CLOSE\",\"PARAMS\":[],\"INTERRUPTIBLE\":true,\"SERVICE\":false},{\"COMMAND\":\"TOGGLE\",\"PARAMS\":[],\"INTERRUPTIBLE\":true,\"SERVICE\":false}]}");
+	  ///{"EVENT_NAME":"ALL_BEGINS","GROUP_ID":35}
+	  //"{\"EVENT_NAME\":\"WORK_ASSIGNATION_REPLY\",\"MODULE_ID\":\"HANDING_MODULE\",\"REPLY\":\"ACCEPTED\",\"COMMAND_ID\":2,\"COMMAND_GROUP\":2}"
+	 // "{\"EVENT_NAME\":\"ACTION_FINISHED\",\"MODULE_ID\":\"HANDING_MODULE\",\"COMMAND_ID\":2,\"GROUP_ID\":2,\"STATUS\":\"DONE\",\"ERROR_MESSAGE\":\"\",\"FINISH_MESSAGE\":\"\"}"
+	  __bis_SR_register(LPM0_bits + GIE);        // LPM0 (low power mode) interrupts enabled
+//*/
 
   	}
 
@@ -151,31 +185,41 @@ void changeDutyCycle(float period,float dutyCycle){
  __interrupt void    USCI0RX_ISR(void)
  {
 	while  (!(IFG2&UCA0TXIFG));    //  USCI_A0 TX  buffer  ready?
-	UCA0TXBUF  =   UCA0RXBUF&63;  //  TX  -&amp;gt;   RXed    character
-	char dato=(UCA0RXBUF),reply='1';//unsigned
-	if(dato=='{' ){
+	char dato=(UCA0RXBUF);
+	char reply='1';//unsigned
+	//uart_tx(dato);
+	if(dato =='{' ){
+		//uartSend("{");
 		LineBuffer[bufferlength]=dato;
 		bufferlength++;
   	    bracketsCount++;
-	}else if(dato == '}' && bufferlength > 0 && bracketsCount==1
-			){
-		LineBuffer[bufferlength]=dato;
-		bufferlength++;
-		if(dutyCycle>MAX_VALUE_SERVO){
-			dutyCycle=MIN_VALUE_SERVO;
-		}
-		moveServo(periodo,dutyCycle,100000);
-		dutyCycle=dutyCycle+0.01;
-		uartSend(LineBuffer);
-		bufferlength=0;
-  	    bracketsCount--;
 	}else if(bufferlength > 0){
 		LineBuffer[bufferlength]=dato;
 		bufferlength++;
 		if (dato == '}'){
 			bracketsCount--;
+
+			//uartSend("}");
+			if(bracketsCount==0){
+				//uartSend("ENTRO");
+			   /*
+				if(dutyCycle>MAX_VALUE_SERVO){
+							dutyCycle=MIN_VALUE_SERVO;
+						}
+				moveServo(periodo,dutyCycle);
+				dutyCycle=dutyCycle+0.01;
+				*/
+				//uartSend(LineBuffer);
+				//moveServo(periodo_,0.06);
+				messageProcessing(LineBuffer,bufferlength);
+				memset(LineBuffer, 0, sizeof LineBuffer);
+				bufferlength=0;
+				bracketsCount=0;
+
+			}
 		}
 	}
+
 
  }
 
@@ -184,9 +228,8 @@ void changeDutyCycle(float period,float dutyCycle){
  //------------------------------------------------------------------------------
  void uart_tx(unsigned char byte)
  {
-	 unsigned int txData;                        // UART internal variable for TX
-
-     txData = byte;                          // Load global variable
+	 //unsigned int txData;                        // UART internal variable for TX
+     //txData = byte;                          // Load global variable
      //txData |= 0x100;                        // Add mark stop bit to TXData
      //txData <<= 1;                           // Add space start bit
      while  (!(IFG2&UCA0TXIFG));    //  USCI_A0 TX  buffer  ready?
@@ -195,19 +238,52 @@ void changeDutyCycle(float period,float dutyCycle){
     //while(UCA0STAT & UCBUSY); //UCBUSY indicates if USCI transmitting or receiving
  }
 
+ void messageProcessing(unsigned char *string,int length) {
 
-void uartSend(char *string) {
+	 if(strcmp (string,"{\"COMMAND\":\"OPEN\"}")==0){
+		moveServo(periodo_,0.06);
+		uartSend("{\"EVENT_NAME\":\"ACTION_FINISHED\",\"STATUS\":\"DONE\"}");//*/
+		//uartSend("{DONE}");//*/
+	 }else if(strcmp (string,"{\"COMMAND\":\"CLOSE\"}")==0){
+			 moveServo(periodo_,0.09);
+			 uartSend("{\"EVENT_NAME\":\"ACTION_FINISHED\",\"STATUS\":\"DONE\"}");//*/
+			 //uartSend("{DONE}");//*/
+	 }else if(strcmp (string,"{\"COMMAND\":\"TOGGLE\"}")==0){
+		 uartSend("ENTROOOOOO-> TOGGLE");
+			 moveServo(periodo_,0.09);
+			 float j=0.9;
+			 for(j=0.09;j>=0.06;j){
+				 moveServo(periodo_,j);
+				 __delay_cycles(1000);
+				 j=j-0.01;
+			 }
+			 __delay_cycles(10000);
+			 for(j=0.06;j<=0.09;j){
+				 moveServo(periodo_,j);
+				 __delay_cycles(10);
+				 j=j+0.01;
+			 }
+			 uartSend("{\"EVENT_NAME\":\"ACTION_FINISHED\",\"STATUS\":\"DONE\"}");//*/
 
-	 while (*string) {
-		   // Wait for TX buffer to be ready for new data
-		   while(!(IFG2 & UCA0TXIFG));//check if not set
-		   while(UART_CTS_PxIN & UART_CTS_PAD); //what for the clear to send signal
-		                          //wait until Tx buffer is empty
-	       // Push data to TX buffer
-		   UCA0TXBUF = *string++;
+	 }else {
+		 //uartSend(string);//*/
+		 uartSend("{ERROR}");//*/
+
 	 }
-   // Wait until the last byte is completely sent
-  while(UCA0STAT & UCBUSY); //UCBUSY indicates if USCI transmitting or receiving
+
+ }
+
+void uartSend(unsigned char *string) {
+	while (*string) {
+		// Wait for TX buffer to be ready for new data
+		while(!(IFG2 & UCA0TXIFG));//check if not set
+		while(UART_CTS_PxIN & UART_CTS_PAD); //what for the clear to send signal
+							  //wait until Tx buffer is empty
+		// Push data to TX buffer
+		UCA0TXBUF = *string++;
+	}
+	// Wait until the last byte is completely sent
+	while(UCA0STAT & UCBUSY); //UCBUSY indicates if USCI transmitting or receiving
  }
 
 
@@ -224,13 +300,11 @@ void uartnSend(char *string,int length) {
     while(UCA0STAT & UCBUSY); //UCBUSY indicates if USCI transmitting or receiving
  }
 
-void moveServo(float periodo,float dutyCycle, unsigned long wiatTime){
+void moveServo(float periodo,float dutyCycle){
 	//P1OUT ^= LED_2;
-	TA0CCR1 = periodo*(1-dutyCycle);
+	//TA0CCR1 = periodo*(1-dutyCycle);
 	TA1CCR1 = periodo*(1-dutyCycle);
-	dutyCycle=dutyCycle+0.01;
-	__delay_cycles(100000);//1000000
-	//__delay_cycles(wiatTime);//1000000
+	//__delay_cycles(10000);//1000000
 }
 
 
